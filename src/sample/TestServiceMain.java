@@ -100,6 +100,6 @@ public class TestServiceMain {
         //System.out.println(addNewNote(new Note("pla", "plaplaplaplaplaplaplaplaplaplaplaplaplaplaplaplaplapla", "joe", "plaplapla"), token));
 
         Note n = new Note(3, "nuirtitle", "plapla", "plaplapla", "joe");
-        update(n, token);
+        System.out.println(update(n, token));
     }
 }
