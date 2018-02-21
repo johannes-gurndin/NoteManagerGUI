@@ -1,6 +1,10 @@
 package noteblock;
 
 
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.core.GenericEntity;
+import javax.ws.rs.core.GenericType;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -37,6 +41,16 @@ public class Note {
         this.creatorname = creatorname;
         this.topic = topic;
     }
+
+    public static ArrayList<Note> getNotes(ArrayList<Filter> filter, String token){
+        return ClientBuilder.newClient()
+                .target("http://localhost:8080/rest/")
+                .path("notes/get/{token}")
+                .resolveTemplate("token", token)
+                .request()
+                .post(Entity.xml(new GenericEntity<ArrayList<Filter>>(filter){}),new GenericType<ArrayList<Note>>() {});
+    }
+
     public String getCreatorname() {
         return creatorname;
     }
@@ -79,6 +93,6 @@ public class Note {
 
     @Override
     public String toString() {
-        return "Topic: " + this.topic + "\nTitle: " + this.title + "\nCreator: " + this.creatorname + "\n\n" + this.text;
+        return "Topic: " + this.topic + "\nTitle: " + this.title + "\nCreator: " + this.creatorname;
     }
 }
