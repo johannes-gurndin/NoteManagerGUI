@@ -67,7 +67,7 @@ public class TestServiceMain {
                     .path("notes/update/{token}")
                     .resolveTemplate("token", token)
                     .request()
-                    .post(Entity.xml(n), String.class));
+                    .put(Entity.xml(n), String.class));
 
         } catch (NumberFormatException e){}
         return ret;
@@ -79,7 +79,8 @@ public class TestServiceMain {
                 .resolveTemplate("token", token)
                 .resolveTemplate("id", id)
                 .request()
-                .delete(String.class));
+                .delete()
+                .readEntity(String.class));
 
     }
 
@@ -98,9 +99,7 @@ public class TestServiceMain {
 
         //System.out.println(addNewNote(new Note("pla", "plaplaplaplaplaplaplaplaplaplaplaplaplaplaplaplaplapla", "joe", "plaplapla"), token));
 
-        for(Topic n : getAllTopics(token)){
-            System.out.println(n.toString());
-        }
-        delete(2, token);
+        Note n = new Note(3, "nuirtitle", "plapla", "plaplapla", "joe");
+        update(n, token);
     }
 }

@@ -55,7 +55,8 @@ public class NoteController {
                 .resolveTemplate("token", token)
                 .resolveTemplate("id", id)
                 .request()
-                .delete(String.class));
+                .delete()
+                .readEntity(String.class));
 
     }
 
@@ -71,7 +72,7 @@ public class NoteController {
                     .path("notes/update/{token}")
                     .resolveTemplate("token", Main.authToken)
                     .request()
-                    .post(Entity.xml(note), String.class));
+                    .put(Entity.xml(note), String.class));
 
         } catch (Exception e){
             e.printStackTrace();
