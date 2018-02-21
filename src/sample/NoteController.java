@@ -1,5 +1,7 @@
 package sample;
 
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
@@ -14,15 +16,21 @@ import java.util.ArrayList;
 
 
 public class NoteController {
-    private Note note;
+    public Note note;
+    private Controller pController;
     public TextArea note_content;
     public TextField note_title;
     public Button edit_note;
+
 
     public void setNote(Note n){
         note = n;
         note_title.setText(n.getTitle());
         note_content.setText(n.getText());
+    }
+
+    public void setParentController(Controller c){
+        pController = c;
     }
 
 
@@ -34,38 +42,14 @@ public class NoteController {
 
      */
 
-    public static int addNewNote(Note n, String token){
-        int ret = 0;
-        try {
-            ret = Integer.parseInt(ClientBuilder.newClient()
-                    .target("http://localhost:8080/rest/")
-                    .path("notes/insert/{token}")
-                    .resolveTemplate("token", token)
-                    .request()
-                    .post(Entity.xml(n), String.class));
-
-        } catch (NumberFormatException e){}
-        return ret;
-    }
-
-    public static boolean delete(int id, String token){
-        return Boolean.valueOf(ClientBuilder.newClient()
-                .target("http://localhost:8080/rest/")
-                .path("notes/del/{token}/{id}")
-                .resolveTemplate("token", token)
-                .resolveTemplate("id", id)
-                .request()
-                .delete()
-                .readEntity(String.class));
-
-    }
-
     public void update(ActionEvent actionEvent) {
+        System.out.println("UPDATE");
         int ret = 0;
         String old_text = note.getText();
         note.setText(note_content.getText());
         String old_title = note.getTitle();
         note.setTitle(note_title.getText());
+        System.out.println(Main.authToken);
         try {
             ret = Integer.parseInt(ClientBuilder.newClient()
                     .target("http://localhost:8080/rest/")
@@ -73,7 +57,7 @@ public class NoteController {
                     .resolveTemplate("token", Main.authToken)
                     .request()
                     .put(Entity.xml(note), String.class));
-
+            System.out.println(ret);
         } catch (Exception e){
             e.printStackTrace();
             System.out.println("letz");
@@ -82,5 +66,19 @@ public class NoteController {
             note.setTitle(old_title);
             Main.focusLogin();
         }
+    }
+
+    public void delete(ActionEvent actionEvent) {
+        ClientBuilder.newClient()
+                .target("http://localhost:8080/rest/")
+                .path("notes/del/{token}/{id}")
+                .resolveTemplate("token", Main.authToken)
+                .resolveTemplate("id", note.getId())
+                .request()
+                .delete()
+                .readEntity(String.class);
+        pController.tabs.getTabs().remove(pController.openNotes.get(note));
+        ObservableList<Note> items = FXCollections.observableArrayList(Note.getNotes(new ArrayList<Filter>(), Main.authToken));
+        Main.mainController.note_list.setItems(items);
     }
 }

@@ -1,5 +1,7 @@
 package sample;
 
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.event.EventHandler;
@@ -28,8 +30,8 @@ public class Controller {
     public Button btn_login;
     public Label login_lable;
     public Label lbl_pass;
-    private HashMap<Note, Tab> openNotes = new HashMap<>();
-    private HashMap<Tab, Note> openTabs = new HashMap<>();
+    public HashMap<Note, Tab> openNotes = new HashMap<>();
+    public HashMap<Tab, Note> openTabs = new HashMap<>();
 
     public void openNote(MouseEvent mouseEvent) {
         if (mouseEvent.getClickCount() == 2) {
@@ -57,6 +59,7 @@ public class Controller {
                 openNotes.put(currentItemSelected, t);
                 openTabs.put(t, currentItemSelected);
                 cntrl.setNote(currentItemSelected);
+                cntrl.setParentController(this);
                 tabs.getTabs().add(t);
             }
         }
@@ -77,9 +80,60 @@ public class Controller {
             login_lable.setText("Logged in as: "+tf_user.getText());
             login_lable.setStyle("-fx-text-fill: green; -fx-font-size: 16;");
             Main.authToken = token;
+            Main.username = tf_user.getText();
+            ObservableList<Note> items = FXCollections.observableArrayList(Note.getNotes(new ArrayList<Filter>(), Main.authToken));
+            Main.mainController.note_list.setItems(items);
         } else {
             tf_user.setStyle("-fx-text-fill: red");
         }
+
+    }
+
+    public void addNewNote(ActionEvent actionEvent) {
+        Tab t = new Tab("NOTE");
+        t.closableProperty().setValue(true);
+        t.setOnCloseRequest(event -> {
+            Tab tt = (Tab)(event.getSource());
+            openNotes.remove(openTabs.get(tt));
+            openTabs.remove(tt);
+        });
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("note.fxml"));
+        Parent root = null;
+        try {
+            root = loader.load();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        t.setContent(root);
+        NoteController cntrl = loader.getController();
+        Note n = new Note();
+        n.setCreatorname(Main.username);
+        n.setTopic("dddd");
+        cntrl.setNote(n);
+        cntrl.edit_note.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                System.out.println("NEW");
+                cntrl.note.setText(cntrl.note_content.getText());
+                cntrl.note.setTitle(cntrl.note_title.getText());
+                cntrl.note.setId(Integer.parseInt(ClientBuilder.newClient()
+                        .target("http://localhost:8080/rest/")
+                        .path("notes/insert/{token}")
+                        .resolveTemplate("token", Main.authToken)
+                        .request()
+                        .post(Entity.xml(cntrl.note), String.class)));
+                System.out.println("ID: "+cntrl.note.getId());
+                ObservableList<Note> items = FXCollections.observableArrayList(Note.getNotes(new ArrayList<Filter>(), Main.authToken));
+                Main.mainController.note_list.setItems(items);
+                cntrl.edit_note.setOnAction(new EventHandler<ActionEvent>() {
+                    @Override
+                    public void handle(ActionEvent event) {
+                        cntrl.update(event);
+                    }
+                });
+            }
+        });
+        tabs.getTabs().add(t);
 
     }
 }

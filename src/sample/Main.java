@@ -17,6 +17,7 @@ import java.util.ArrayList;
 public class Main extends Application {
 
     public static String authToken = "hh";
+    public static String username = "";
     public static Controller mainController;
 
     public static void focusLogin(){
@@ -29,8 +30,6 @@ public class Main extends Application {
         Parent root = loader.load();
         mainController = loader.getController();
         mainController.tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
-        ObservableList<Note> items = FXCollections.observableArrayList(Note.getNotes(new ArrayList<Filter>(), authToken));
-        mainController.note_list.setItems(items);
         primaryStage.setTitle("Hello World");
         primaryStage.setScene(new Scene(root, 300,275));
         primaryStage.show();
