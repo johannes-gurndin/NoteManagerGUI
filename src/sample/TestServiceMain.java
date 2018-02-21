@@ -19,7 +19,14 @@ public class TestServiceMain {
                 .post(Entity.entity(password, MediaType.TEXT_PLAIN), String.class);
         return token;
     }
-
+    public static boolean logout(String token){
+        return Boolean.valueOf(ClientBuilder.newClient()
+                .target("http://localhost:8080/rest/")
+                .path("users/logout/{token}")
+                .resolveTemplate("token", token)
+                .request()
+                .get(String.class));
+    }
 
     public static ArrayList<Note> getNotes(ArrayList<Filter> filter, String token){
         return ClientBuilder.newClient()
