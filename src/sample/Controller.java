@@ -25,10 +25,10 @@ public class Controller {
         t.setContent(root);
         NoteController cntrl = loader.getController();
         open_notes.add(cntrl);
-        cntrl.
-        chatTabs.getTabs().add(t);
-        chats.get(id).targetIp.setText(targetIP);
-        chats.get(id).chatID.setText(id);
+       // cntrl.
+//        chatTabs.getTabs().add(t);
+//        chats.get(id).targetIp.setText(targetIP);
+//        chats.get(id).chatID.setText(id);
     }
 
 

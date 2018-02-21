@@ -1,37 +1,26 @@
 package sample;
 
-import javafx.scene.control.Button;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
-import noteblock.*;
 
+import noteblock.*;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.GenericType;
+import javax.ws.rs.core.MediaType;
 import java.util.ArrayList;
 
-
-public class NoteController {
-    private Note note;
-    public TextArea note_content;
-    public TextField note_title;
-    public Button edit_note;
-
-    public void setNote(Note n){
-        note = n;
-        note_title.setText(n.getTitle());
-        note_content.setText(n.getText());
+public class TestServiceMain {
+    public static String login(String username, String password){
+        String token = ClientBuilder.newClient()
+                .target("http://localhost:8080/rest/")
+                .path("user/login/{username}")
+                .resolveTemplate("username", username)
+                .request()
+                .post(Entity.entity(password, MediaType.TEXT_PLAIN), String.class);
+        return token;
     }
 
 
-    /*
-
-    DO KEMMEN DI METHODEN INNI DE A NOTE BERTEFFEN
-
-
-
-     */
     public static ArrayList<Note> getNotes(ArrayList<Filter> filter, String token){
         return ClientBuilder.newClient()
                 .target("http://localhost:8080/rest/")
@@ -39,6 +28,15 @@ public class NoteController {
                 .resolveTemplate("token", token)
                 .request()
                 .post(Entity.xml(new GenericEntity<ArrayList<Filter>>(filter){}),new GenericType<ArrayList<Note>>() {});
+    }
+
+    public static ArrayList<Topic> getAllTopics(String token){
+        return ClientBuilder.newClient()
+                .target("http://localhost:8080/rest/")
+                .path("topic/getall/{token}")
+                .resolveTemplate("token", token)
+                .request()
+                .get(new GenericType<ArrayList<Topic>>(){});
     }
     public static int addNewNote(Note n, String token){
         int ret = 0;
@@ -76,5 +74,26 @@ public class NoteController {
                 .request()
                 .delete(String.class));
 
+    }
+
+    public static void main(String[] args) {
+        String token = login("joe", "plapla");
+        ArrayList<Note> notesOfJoe;
+        ArrayList<Filter> filter = new ArrayList<>();
+        filter.add(new Filter("creator", "joe"));
+
+        notesOfJoe = getNotes(filter, token);
+
+        for(Note n : notesOfJoe){
+            System.out.println(n.toString());
+        }
+
+
+        //System.out.println(addNewNote(new Note("pla", "plaplaplaplaplaplaplaplaplaplaplaplaplaplaplaplaplapla", "joe", "plaplapla"), token));
+
+        for(Topic n : getAllTopics(token)){
+            System.out.println(n.toString());
+        }
+        delete(2, token);
     }
 }

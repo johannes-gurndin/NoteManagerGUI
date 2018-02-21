@@ -1,6 +1,10 @@
 package noteblock;
 
 import javax.xml.bind.annotation.XmlRootElement;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 
 @XmlRootElement
@@ -12,10 +16,6 @@ public class Topic {
 
     public Topic(String title) {
         this.title = title;
-    }
-
-    public static ArrayList<Topic> getAllTopics() {
-        return null;
     }
 
     public String getTitle() {
