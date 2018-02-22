@@ -1,6 +1,8 @@
 package noteblock;
 
 
+import sample.Main;
+
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.GenericEntity;
@@ -49,6 +51,26 @@ public class Note {
                 .resolveTemplate("token", token)
                 .request()
                 .post(Entity.xml(new GenericEntity<ArrayList<Filter>>(filter){}),new GenericType<ArrayList<Note>>() {});
+    }
+
+    public void setSeen(String token){
+        ClientBuilder.newClient()
+                .target("http://localhost:8080/rest/")
+                .path("notes/setSeen/{token}/{id}")
+                .resolveTemplate("token", Main.authToken)
+                .resolveTemplate("id", id)
+                .request()
+                .get()
+                .readEntity(String.class);
+    }
+
+    public static ArrayList<Note> getUnseenNotes(String token){
+        return ClientBuilder.newClient()
+                .target("http://localhost:8080/rest/")
+                .path("notes/getUnseen/{token}")
+                .resolveTemplate("token", token)
+                .request()
+                .get(new GenericType<ArrayList<Note>>(){});
     }
 
     public String getCreatorname() {

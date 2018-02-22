@@ -17,6 +17,7 @@ import java.util.ArrayList;
 
 public class NoteController {
     public Note note;
+    public Button btn_delete;
     private Controller pController;
     public TextArea note_content;
     public TextField note_title;

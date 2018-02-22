@@ -46,6 +46,6 @@
             <Button fx:id="btn_login" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onAction="#login" prefHeight="28.0" prefWidth="87.0" text="Login" GridPane.columnSpan="2" GridPane.rowIndex="2" />
          </children>
       </GridPane>
-      <Button mnemonicParsing="false" onAction="#addNewNote" text="add Note" GridPane.rowIndex="2" />
+      <Button fx:id="btn_add" mnemonicParsing="false" onAction="#addNewNote" text="add Note" visible="false" GridPane.rowIndex="2" />
    </children>
 </GridPane>

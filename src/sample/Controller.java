@@ -10,6 +10,7 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Border;
 import javafx.scene.layout.BorderStroke;
+import javafx.util.Callback;
 import noteblock.*;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -32,18 +33,24 @@ public class Controller {
     public Label lbl_pass;
     public HashMap<Note, Tab> openNotes = new HashMap<>();
     public HashMap<Tab, Note> openTabs = new HashMap<>();
+    private ArrayList<Note> unseen = new ArrayList<>();
+    public Button btn_add;
 
     public void openNote(MouseEvent mouseEvent) {
         if (mouseEvent.getClickCount() == 2) {
             Note currentItemSelected = note_list.getSelectionModel().getSelectedItem();
-
-            if(openNotes.keySet().contains(currentItemSelected)){
+            if(unseen.contains(currentItemSelected)){
+                currentItemSelected.setTitle(currentItemSelected.getTitle().substring(0, currentItemSelected.getTitle().length() - 5));
+                unseen.remove(currentItemSelected);
+                note_list.refresh();
+            }
+            if (openNotes.keySet().contains(currentItemSelected)) {
                 tabs.getSelectionModel().select(openNotes.get(currentItemSelected));
-            }else {
+            } else {
                 Tab t = new Tab("NOTE");
                 t.closableProperty().setValue(true);
                 t.setOnCloseRequest(event -> {
-                    Tab tt = (Tab)(event.getSource());
+                    Tab tt = (Tab) (event.getSource());
                     openNotes.remove(openTabs.get(tt));
                     openTabs.remove(tt);
                 });
@@ -66,6 +73,7 @@ public class Controller {
     }
 
     public void login(ActionEvent actionEvent) {
+
         String token = ClientBuilder.newClient()
                 .target("http://localhost:8080/rest/")
                 .path("user/login/{username}")
@@ -77,12 +85,26 @@ public class Controller {
             tf_user.visibleProperty().setValue(false);
             lbl_pass.visibleProperty().setValue(false);
             btn_login.visibleProperty().setValue(false);
-            login_lable.setText("Logged in as: "+tf_user.getText());
+            login_lable.setText("Logged in as: " + tf_user.getText());
             login_lable.setStyle("-fx-text-fill: green; -fx-font-size: 16;");
             Main.authToken = token;
+            btn_add.visibleProperty().setValue(true);
             Main.username = tf_user.getText();
             ObservableList<Note> items = FXCollections.observableArrayList(Note.getNotes(new ArrayList<Filter>(), Main.authToken));
+            ArrayList<Integer> unseen_ids = new ArrayList<>();
+            unseen = Note.getUnseenNotes(Main.authToken);
+            for (Note un : unseen) {
+                unseen_ids.add(un.getId());
+            }
+            for(Note n:items){
+                if(unseen_ids.contains(n.getId())){
+                    n.setTitle(n.getTitle()+" *NEW*");
+                    unseen.add(n);
+                }
+            }
             Main.mainController.note_list.setItems(items);
+
+
         } else {
             tf_user.setStyle("-fx-text-fill: red");
         }
@@ -93,7 +115,7 @@ public class Controller {
         Tab t = new Tab("NOTE");
         t.closableProperty().setValue(true);
         t.setOnCloseRequest(event -> {
-            Tab tt = (Tab)(event.getSource());
+            Tab tt = (Tab) (event.getSource());
             openNotes.remove(openTabs.get(tt));
             openTabs.remove(tt);
         });
@@ -110,6 +132,7 @@ public class Controller {
         n.setCreatorname(Main.username);
         n.setTopic("dddd");
         cntrl.setNote(n);
+        cntrl.btn_delete.visibleProperty().setValue(false);
         cntrl.edit_note.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
@@ -122,7 +145,8 @@ public class Controller {
                         .resolveTemplate("token", Main.authToken)
                         .request()
                         .post(Entity.xml(cntrl.note), String.class)));
-                System.out.println("ID: "+cntrl.note.getId());
+                cntrl.btn_delete.visibleProperty().setValue(true);
+                System.out.println("ID: " + cntrl.note.getId());
                 ObservableList<Note> items = FXCollections.observableArrayList(Note.getNotes(new ArrayList<Filter>(), Main.authToken));
                 Main.mainController.note_list.setItems(items);
                 cntrl.edit_note.setOnAction(new EventHandler<ActionEvent>() {
