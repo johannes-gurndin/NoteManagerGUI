@@ -30,8 +30,9 @@ public class Main extends Application {
         Parent root = loader.load();
         mainController = loader.getController();
         mainController.tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
+        primaryStage.resizableProperty().setValue(false);
         primaryStage.setTitle("Hello World");
-        primaryStage.setScene(new Scene(root, 300,275));
+        primaryStage.setScene(new Scene(root, 1200,600));
         primaryStage.show();
     }
     public static void main(String[] args){

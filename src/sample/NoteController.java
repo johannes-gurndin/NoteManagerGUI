@@ -4,6 +4,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import noteblock.*;
@@ -18,6 +19,7 @@ import java.util.ArrayList;
 public class NoteController {
     public Note note;
     public Button btn_delete;
+    public ComboBox<String> cb_topic = new ComboBox<>();
     private Controller pController;
     public TextArea note_content;
     public TextField note_title;
@@ -45,27 +47,35 @@ public class NoteController {
 
     public void update(ActionEvent actionEvent) {
         System.out.println("UPDATE");
-        int ret = 0;
-        String old_text = note.getText();
-        note.setText(note_content.getText());
-        String old_title = note.getTitle();
-        note.setTitle(note_title.getText());
-        System.out.println(Main.authToken);
-        try {
-            ret = Integer.parseInt(ClientBuilder.newClient()
-                    .target("http://localhost:8080/rest/")
-                    .path("notes/update/{token}")
-                    .resolveTemplate("token", Main.authToken)
-                    .request()
-                    .put(Entity.xml(note), String.class));
-            System.out.println(ret);
-        } catch (Exception e){
-            e.printStackTrace();
-            System.out.println("letz");
+        if(cb_topic.getSelectionModel().getSelectedItem().equals("")) {
+            cb_topic.requestFocus();
+        }else {
+            int ret = 0;
+            String old_text = note.getText();
+            note.setText(note_content.getText());
+            String old_title = note.getTitle();
+            note.setTitle(note_title.getText());
+            String old_topic = note.getTopic();
+            note.setTopic(cb_topic.getSelectionModel().getSelectedItem());
             System.out.println(Main.authToken);
-            note.setText(old_text);
-            note.setTitle(old_title);
-            Main.focusLogin();
+            try {
+                ret = Integer.parseInt(ClientBuilder.newClient()
+                        .target("http://localhost:8080/rest/")
+                        .path("notes/update/{token}")
+                        .resolveTemplate("token", Main.authToken)
+                        .request()
+                        .put(Entity.xml(note), String.class));
+                pController.note_list.refresh();
+                System.out.println(ret);
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.out.println("letz");
+                System.out.println(Main.authToken);
+                note.setText(old_text);
+                note.setTitle(old_title);
+                note.setTopic(old_topic);
+                Main.focusLogin();
+            }
         }
     }
 

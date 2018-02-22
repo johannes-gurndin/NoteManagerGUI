@@ -1,5 +1,9 @@
 package noteblock;
 
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.core.GenericEntity;
+import javax.ws.rs.core.GenericType;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,6 +16,15 @@ public class Topic {
     private String title;
 
     public Topic() {
+    }
+
+    public static ArrayList<Topic> getTopics(String token){
+        return ClientBuilder.newClient()
+                .target("http://localhost:8080/rest/")
+                .path("topic/getall/{token}")
+                .resolveTemplate("token", token)
+                .request()
+                .get(new GenericType<ArrayList<Topic>>(){});
     }
 
     public Topic(String title) {
