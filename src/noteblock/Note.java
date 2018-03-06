@@ -8,6 +8,11 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.GenericType;
 import javax.xml.bind.annotation.XmlRootElement;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.Buffer;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -45,7 +50,10 @@ public class Note {
     }
 
     public static ArrayList<Note> getNotes(ArrayList<Filter> filter, String token){
-        return ClientBuilder.newClient()
+        if(token.equals("offlineToken")){
+            return loadOfflineNotes();
+        } else
+            return ClientBuilder.newClient()
                 .target("http://localhost:8080/rest/")
                 .path("notes/get/{token}")
                 .resolveTemplate("token", token)
@@ -53,8 +61,29 @@ public class Note {
                 .post(Entity.xml(new GenericEntity<ArrayList<Filter>>(filter){}),new GenericType<ArrayList<Note>>() {});
     }
 
+    private static ArrayList<Note> loadOfflineNotes() {
+        ArrayList<Note> offlineNotes = new ArrayList<>();
+        File f = new File("C:\\Users\\Johannes\\IdeaProjects\\NoteManagerGUI\\notemanagerdocs\\notes.txt");
+        if(!f.exists())
+            return new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(f))) {
+            String line;
+            while((line=reader.readLine()) != null){
+                //0 = id
+                //1 = title
+                //2 = text
+                //3 = topic
+                //4 = creatorname
+                String[] note = line.split(":");
+                offlineNotes.add(new Note(Integer.parseInt(note[0]),note[1],note[2],note[3],note[4]));
+            }
+        } catch (IOException e){}
+        return offlineNotes;
+    }
+
     public void setSeen(String token){
-        ClientBuilder.newClient()
+        if(!token.equals("offlineToken"))
+            ClientBuilder.newClient()
                 .target("http://localhost:8080/rest/")
                 .path("notes/setSeen/{token}/{id}")
                 .resolveTemplate("token", Main.authToken)

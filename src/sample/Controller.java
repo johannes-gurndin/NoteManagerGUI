@@ -19,8 +19,13 @@ import javafx.scene.Parent;
 
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
+import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
-import java.io.IOException;
+import java.io.*;
+import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -87,66 +92,108 @@ public class Controller {
     }
 
     public void login(ActionEvent actionEvent) {
+        String token;
+        ObservableList<Note> items;
+        try {
+             token = ClientBuilder.newClient()
+                     .target("http://localhost:8080/rest/")
+                     .path("user/login/{username}")
+                     .resolveTemplate("username", tf_user.getText())
+                     .request()
+                     .post(Entity.entity(tf_pass.getText(), MediaType.TEXT_PLAIN), String.class);
+         } catch (Exception e){
+            token = offlineLogin(tf_user.getText(), tf_pass.getText());
+         }
 
-        String token = ClientBuilder.newClient()
-                .target("http://localhost:8080/rest/")
-                .path("user/login/{username}")
-                .resolveTemplate("username", tf_user.getText())
-                .request()
-                .post(Entity.entity(tf_pass.getText(), MediaType.TEXT_PLAIN), String.class);
-        if (!token.equals("false")) {
-            tf_pass.visibleProperty().setValue(false);
-            tf_user.visibleProperty().setValue(false);
-            lbl_pass.visibleProperty().setValue(false);
-            btn_login.setText("Logout");
-            btn_login.setOnAction(event -> {
-                note_list.getItems().clear();
-                tabs.getTabs().clear();
-                btn_add.setVisible(false);
-                openNotes.clear();
-                openTabs.clear();
-                String ret = ClientBuilder.newClient()
-                        .target("http://localhost:8080/rest/")
-                        .path("user/logout/{token}")
-                        .resolveTemplate("token", Main.authToken)
-                        .request()
-                        .get(String.class);
-                Main.authToken = "";
-                login_lable.setStyle("-fx-text-fill: black; -fx-font-size: 13;");
-                tf_pass.clear();
-                tf_user.clear();
-                btn_login.setOnAction(this::login);
-                tf_pass.visibleProperty().setValue(true);
-                tf_user.visibleProperty().setValue(true);
-                lbl_pass.visibleProperty().setValue(true);
-                btn_login.setText("Login");
-                login_lable.setText("Username: ");
+        switch (token){
+            case "offlineToken":
+                tf_user.setStyle("-fx-text-fill: black");
+                tf_pass.visibleProperty().setValue(false);
+                tf_user.visibleProperty().setValue(false);
+                lbl_pass.visibleProperty().setValue(false);
+                btn_login.setText("Logout");
+                btn_login.setOnAction(event -> {
+                    note_list.getItems().clear();
+                    tabs.getTabs().clear();
+                    btn_add.setVisible(false);
+                    openNotes.clear();
+                    openTabs.clear();
+                    Main.authToken = "";
+                    login_lable.setStyle("-fx-text-fill: black; -fx-font-size: 13;");
+                    tf_pass.clear();
+                    tf_user.clear();
+                    btn_login.setOnAction(this::login);
+                    tf_pass.visibleProperty().setValue(true);
+                    tf_user.visibleProperty().setValue(true);
+                    lbl_pass.visibleProperty().setValue(true);
+                    btn_login.setText("Login");
+                    login_lable.setText("Username: ");
 
-            });
-            login_lable.setText("Logged in as: " + tf_user.getText());
-            login_lable.setStyle("-fx-text-fill: green; -fx-font-size: 16;");
-            Main.authToken = token;
-            btn_add.visibleProperty().setValue(true);
-            Main.username = tf_user.getText();
-            ObservableList<Note> items = FXCollections.observableArrayList(Note.getNotes(new ArrayList<Filter>(), Main.authToken));
-            ArrayList<Integer> unseen_ids = new ArrayList<>();
-            unseen = Note.getUnseenNotes(Main.authToken);
-            for (Note un : unseen) {
-                unseen_ids.add(un.getId());
-            }
-            for(Note n:items){
-                if(unseen_ids.contains(n.getId())){
-                    n.setTitle(n.getTitle()+" *NEW*");
-                    unseen.add(n);
+                });
+                login_lable.setText("Logged in as: " + tf_user.getText());
+                login_lable.setStyle("-fx-text-fill: green; -fx-font-size: 16;");
+                Main.authToken = token;
+
+                btn_add.visibleProperty().setValue(true);
+                Main.username = tf_user.getText();
+                items = FXCollections.observableArrayList(Note.getNotes(new ArrayList<Filter>(), Main.authToken));
+                Main.mainController.note_list.setItems(items);
+                break;
+            case "false":
+                tf_user.setStyle("-fx-text-fill: red");
+                break;
+            default:
+                tf_user.setStyle("-fx-text-fill: black");
+                tf_pass.visibleProperty().setValue(false);
+                tf_user.visibleProperty().setValue(false);
+                lbl_pass.visibleProperty().setValue(false);
+                btn_login.setText("Logout");
+                btn_login.setOnAction(event -> {
+                    note_list.getItems().clear();
+                    tabs.getTabs().clear();
+                    btn_add.setVisible(false);
+                    openNotes.clear();
+                    openTabs.clear();
+                    String ret = ClientBuilder.newClient()
+                            .target("http://localhost:8080/rest/")
+                            .path("user/logout/{token}")
+                            .resolveTemplate("token", Main.authToken)
+                            .request()
+                            .get(String.class);
+                    Main.authToken = "";
+                    login_lable.setStyle("-fx-text-fill: black; -fx-font-size: 13;");
+                    tf_pass.clear();
+                    tf_user.clear();
+                    btn_login.setOnAction(this::login);
+                    tf_pass.visibleProperty().setValue(true);
+                    tf_user.visibleProperty().setValue(true);
+                    lbl_pass.visibleProperty().setValue(true);
+                    btn_login.setText("Login");
+                    login_lable.setText("Username: ");
+
+                });
+                login_lable.setText("Logged in as: " + tf_user.getText());
+                login_lable.setStyle("-fx-text-fill: green; -fx-font-size: 16;");
+                Main.authToken = token;
+
+                saveAllUsersOffline();
+
+                btn_add.visibleProperty().setValue(true);
+                Main.username = tf_user.getText();
+                items = FXCollections.observableArrayList(Note.getNotes(new ArrayList<Filter>(), Main.authToken));
+                ArrayList<Integer> unseen_ids = new ArrayList<>();
+                unseen = Note.getUnseenNotes(Main.authToken);
+                for (Note un : unseen) {
+                    unseen_ids.add(un.getId());
                 }
-            }
-            Main.mainController.note_list.setItems(items);
-
-
-        } else {
-            tf_user.setStyle("-fx-text-fill: red");
+                for(Note n:items){
+                    if(unseen_ids.contains(n.getId())){
+                        n.setTitle(n.getTitle()+" *NEW*");
+                        unseen.add(n);
+                    }
+                }
+                Main.mainController.note_list.setItems(items);
         }
-
     }
 
     public void addNewNote(ActionEvent actionEvent) {
@@ -207,5 +254,76 @@ public class Controller {
         });
         tabs.getTabs().add(t);
 
+    }
+
+    public void saveAllNotesOffline(){
+
+    }
+    public void saveAllUsersOffline(){
+        ArrayList<Filter> filter = ClientBuilder.newClient()
+                .target("http://localhost:8080/rest/")
+                .path("user/getall/{token}")
+                .resolveTemplate("token", Main.authToken)
+                .request()
+                .get(new GenericType<ArrayList<Filter>>() {});
+        File f = new File("C:\\Users\\Johannes\\IdeaProjects\\NoteManagerGUI\\notemanagerdocs\\users.txt");
+        if(!f.exists()){
+            try {
+                f.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(f))) {
+            for (Filter user:
+                 filter) {
+                writer.write(user.getKey() + ":" + user.getValue() + "\n");
+            }
+        } catch (IOException e){
+
+        }
+
+    }
+
+    private String offlineLogin(String username, String pass) {
+        String ret = "false";
+        ArrayList<Filter> users = new ArrayList<>();
+        File f = new File("C:\\Users\\Johannes\\IdeaProjects\\NoteManagerGUI\\notemanagerdocs\\users.txt");
+        if(!f.exists())
+            return ret;
+        try (BufferedReader reader = new BufferedReader(new FileReader(f))) {
+            String line;
+            while((line=reader.readLine()) != null){
+                String [] userpass = line.split(":");
+                users.add(new Filter(userpass[0], userpass[1]));
+            }
+        } catch (IOException e){}
+
+        MessageDigest digest = null;
+        try {
+            digest = MessageDigest.getInstance("SHA-256");
+            String hash = hash256(pass);
+
+            for (Filter user:
+                 users) {
+                if(user.getValue().equals(hash)){
+                    ret = "offlineToken";
+                }
+            }
+
+        } catch (NoSuchAlgorithmException e) {
+        }
+
+        return ret;
+    }
+    public static String hash256(String data) throws NoSuchAlgorithmException {
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        md.update(data.getBytes());
+        return bytesToHex(md.digest());
+    }
+    public static String bytesToHex(byte[] bytes) {
+        StringBuffer result = new StringBuffer();
+        for (byte byt : bytes) result.append(Integer.toString((byt & 0xff) + 0x100, 16).substring(1));
+        return result.toString();
     }
 }
