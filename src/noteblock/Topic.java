@@ -19,7 +19,7 @@ public class Topic {
     }
 
     public static ArrayList<Topic> getTopics(String token){
-        return ClientBuilder.newClient()
+        return token.equals("offlineToken") ? new ArrayList<>() : ClientBuilder.newClient()
                 .target("http://localhost:8080/rest/")
                 .path("topic/getall/{token}")
                 .resolveTemplate("token", token)

@@ -73,7 +73,7 @@ public class Controller {
                 NoteController cntrl = loader.getController();
                 openNotes.put(currentItemSelected, t);
                 openTabs.put(t, currentItemSelected);
-                if(!currentItemSelected.getCreatorname().equals(tf_user.getText())) {
+                if(!currentItemSelected.getCreatorname().equals(tf_user.getText()) || Main.authToken.equals("offlineToken")) {
                     cntrl.btn_delete.setVisible(false);
                     cntrl.edit_note.setVisible(false);
                 }
@@ -94,6 +94,7 @@ public class Controller {
     public void login(ActionEvent actionEvent) {
         String token;
         ObservableList<Note> items;
+        ArrayList<Note> notes;
         try {
              token = ClientBuilder.newClient()
                      .target("http://localhost:8080/rest/")
@@ -132,11 +133,18 @@ public class Controller {
                 });
                 login_lable.setText("Logged in as: " + tf_user.getText());
                 login_lable.setStyle("-fx-text-fill: green; -fx-font-size: 16;");
+
                 Main.authToken = token;
+                Main.created_offline = loadCreatedOffline();
+
 
                 btn_add.visibleProperty().setValue(true);
                 Main.username = tf_user.getText();
-                items = FXCollections.observableArrayList(Note.getNotes(new ArrayList<Filter>(), Main.authToken));
+                notes = Note.getNotes(new ArrayList<>(), Main.authToken);
+                for (Note n : Main.created_offline){
+                    notes.add(n);
+                }
+                items = FXCollections.observableArrayList(notes);
                 Main.mainController.note_list.setItems(items);
                 break;
             case "false":
@@ -176,11 +184,22 @@ public class Controller {
                 login_lable.setStyle("-fx-text-fill: green; -fx-font-size: 16;");
                 Main.authToken = token;
 
+
+
+                Main.created_offline = loadCreatedOffline();
+                transferCreatedOffline();
+
                 saveAllUsersOffline();
+                saveAllNotesOffline();
 
                 btn_add.visibleProperty().setValue(true);
                 Main.username = tf_user.getText();
-                items = FXCollections.observableArrayList(Note.getNotes(new ArrayList<Filter>(), Main.authToken));
+                notes = Note.getNotes(new ArrayList<>(), Main.authToken);
+                for (Note n : Main.created_offline){
+                    notes.add(n);
+                }
+                items = FXCollections.observableArrayList(notes);
+
                 ArrayList<Integer> unseen_ids = new ArrayList<>();
                 unseen = Note.getUnseenNotes(Main.authToken);
                 for (Note un : unseen) {
@@ -194,6 +213,32 @@ public class Controller {
                 }
                 Main.mainController.note_list.setItems(items);
         }
+    }
+
+    private void transferCreatedOffline() {
+        for(Note n : Main.created_offline){
+            String ret = ClientBuilder.newClient()
+                    .target("http://localhost:8080/rest/")
+                    .path("notes/insert/{token}")
+                    .resolveTemplate("token", Main.authToken)
+                    .request()
+                    .post(Entity.xml(n), String.class);
+            if(ret.equals("false"))
+                System.out.println("Error while transferring notes!");
+            else
+                System.out.println("Notes transferred");
+        }
+        deleteTransferred();
+    }
+
+    private void deleteTransferred() {
+        Main.created_offline.clear();
+        File f = new File(System.getProperty("user.dir") + "\\notemanagerdocs\\offlineNotes.txt");
+        f.delete();
+    }
+
+    private ArrayList<Note> loadCreatedOffline() {
+        return Note.loadOfflineNotes("\\notemanagerdocs\\offlineNotes.txt");
     }
 
     public void addNewNote(ActionEvent actionEvent) {
@@ -233,22 +278,33 @@ public class Controller {
                     cntrl.note.setText(cntrl.note_content.getText());
                     cntrl.note.setTitle(cntrl.note_title.getText());
                     cntrl.note.setTopic(cntrl.cb_topic.getSelectionModel().getSelectedItem());
-                    cntrl.note.setId(Integer.parseInt(ClientBuilder.newClient()
-                            .target("http://localhost:8080/rest/")
-                            .path("notes/insert/{token}")
-                            .resolveTemplate("token", Main.authToken)
-                            .request()
-                            .post(Entity.xml(cntrl.note), String.class)));
-                    cntrl.btn_delete.visibleProperty().setValue(true);
+                    if(Main.authToken.equals("offlineToken")){
+                        Main.created_offline.add(cntrl.note);
+                    } else {
+                        cntrl.note.setId(Integer.parseInt(ClientBuilder.newClient()
+                                .target("http://localhost:8080/rest/")
+                                .path("notes/insert/{token}")
+                                .resolveTemplate("token", Main.authToken)
+                                .request()
+                                .post(Entity.xml(cntrl.note), String.class)));
+                        cntrl.btn_delete.visibleProperty().setValue(true);
+                    }
                     System.out.println("ID: " + cntrl.note.getId());
                     ObservableList<Note> items = FXCollections.observableArrayList(Note.getNotes(new ArrayList<Filter>(), Main.authToken));
+                    for(Note n : Main.created_offline){
+                        items.add(n);
+                    }
                     Main.mainController.note_list.setItems(items);
-                    cntrl.edit_note.setOnAction(new EventHandler<ActionEvent>() {
-                        @Override
-                        public void handle(ActionEvent event) {
-                            cntrl.update(event);
-                        }
-                    });
+                    if(!Main.authToken.equals("offlineToken")) {
+                        cntrl.edit_note.setOnAction(new EventHandler<ActionEvent>() {
+                            @Override
+                            public void handle(ActionEvent event) {
+                                cntrl.update(event);
+                            }
+                        });
+                    } else {
+                        cntrl.edit_note.visibleProperty().setValue(false);
+                    }
                 }
             }
         });
@@ -256,24 +312,28 @@ public class Controller {
 
     }
 
-    public void saveAllNotesOffline(){
-
+    private void saveAllNotesOffline(){
+        ArrayList<Note> notes = Note.getNotes(new ArrayList<Filter>(), Main.authToken);
+        File f = new File(System.getProperty("user.dir") + "\\notemanagerdocs\\notes.txt");
+        Main.ensureFileExists(f);
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(f))) {
+            for(Note n : notes){
+                writer.write(n.toStringSave());
+            }
+        } catch (IOException e){}
     }
-    public void saveAllUsersOffline(){
+
+
+    private void saveAllUsersOffline(){
         ArrayList<Filter> filter = ClientBuilder.newClient()
                 .target("http://localhost:8080/rest/")
                 .path("user/getall/{token}")
                 .resolveTemplate("token", Main.authToken)
                 .request()
                 .get(new GenericType<ArrayList<Filter>>() {});
-        File f = new File("C:\\Users\\Johannes\\IdeaProjects\\NoteManagerGUI\\notemanagerdocs\\users.txt");
-        if(!f.exists()){
-            try {
-                f.createNewFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        File f = new File(System.getProperty("user.dir") + "\\notemanagerdocs\\users.txt");
+        Main.ensureFileExists(f);
+
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(f))) {
             for (Filter user:
                  filter) {
@@ -288,7 +348,7 @@ public class Controller {
     private String offlineLogin(String username, String pass) {
         String ret = "false";
         ArrayList<Filter> users = new ArrayList<>();
-        File f = new File("C:\\Users\\Johannes\\IdeaProjects\\NoteManagerGUI\\notemanagerdocs\\users.txt");
+        File f = new File(System.getProperty("user.dir") + "\\notemanagerdocs\\users.txt");
         if(!f.exists())
             return ret;
         try (BufferedReader reader = new BufferedReader(new FileReader(f))) {

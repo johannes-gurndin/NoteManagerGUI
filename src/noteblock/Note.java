@@ -31,6 +31,7 @@ public class Note {
 
     private String topic;
 
+
     public Note() {
     }
 
@@ -39,6 +40,7 @@ public class Note {
         this.text = text;
         this.creatorname = creatorname;
         this.topic = topic;
+
     }
 
     public Note(int id, String title, String text, String topic, String creatorname) {
@@ -51,7 +53,12 @@ public class Note {
 
     public static ArrayList<Note> getNotes(ArrayList<Filter> filter, String token){
         if(token.equals("offlineToken")){
-            return loadOfflineNotes();
+            System.out.println("offline");
+            ArrayList<Note> notes = loadOfflineNotes("\\notemanagerdocs\\notes.txt");
+            for (Note n : notes){
+                System.out.println(n.toString());
+            }
+            return notes;
         } else
             return ClientBuilder.newClient()
                 .target("http://localhost:8080/rest/")
@@ -61,9 +68,9 @@ public class Note {
                 .post(Entity.xml(new GenericEntity<ArrayList<Filter>>(filter){}),new GenericType<ArrayList<Note>>() {});
     }
 
-    private static ArrayList<Note> loadOfflineNotes() {
+    public static ArrayList<Note> loadOfflineNotes(String path) {
         ArrayList<Note> offlineNotes = new ArrayList<>();
-        File f = new File("C:\\Users\\Johannes\\IdeaProjects\\NoteManagerGUI\\notemanagerdocs\\notes.txt");
+        File f = new File(System.getProperty("user.dir") + path);
         if(!f.exists())
             return new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(f))) {
@@ -75,9 +82,13 @@ public class Note {
                 //3 = topic
                 //4 = creatorname
                 String[] note = line.split(":");
+                for(String n : note){
+                    System.out.println(n);
+                }
                 offlineNotes.add(new Note(Integer.parseInt(note[0]),note[1],note[2],note[3],note[4]));
             }
-        } catch (IOException e){}
+            System.out.println("plapla");
+        } catch (IOException e){e.printStackTrace();}
         return offlineNotes;
     }
 
@@ -145,5 +156,9 @@ public class Note {
     @Override
     public String toString() {
         return "Topic: " + this.topic + "\nTitle: " + this.title + "\nCreator: " + this.creatorname;
+    }
+
+    public String toStringSave(){
+        return this.id + ":"  + this.title + ":"  + this.text + ":"  + this.topic + ":"  + this.creatorname + "\n";
     }
 }

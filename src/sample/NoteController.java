@@ -65,6 +65,7 @@ public class NoteController {
                         .resolveTemplate("token", Main.authToken)
                         .request()
                         .put(Entity.xml(note), String.class));
+
                 pController.note_list.refresh();
                 System.out.println(ret);
             } catch (Exception e) {
